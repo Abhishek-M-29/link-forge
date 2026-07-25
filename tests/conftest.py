@@ -48,3 +48,12 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+@pytest.fixture()
+def auth_headers_for_two_users(client):
+    def register_and_login(username, email):
+        client.post("/api/v1/auth/register", json={"username": username, "email": email, "password": "supersecret1"})
+        login = client.post("/api/v1/auth/login", json={"email": email, "password": "supersecret1"})
+        token = login.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+    return register_and_login("user_a", "a@example.com"), register_and_login("user_b", "b@example.com")
