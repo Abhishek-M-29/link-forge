@@ -1,7 +1,10 @@
 #!/bin/bash
+set -e
+cd "$(dirname "$0")/../.."
 source .venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000 &
 SERVER_PID=$!
+trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 sleep 2
 
 echo -e "\n=== 1. Register User ==="
@@ -39,5 +42,3 @@ curl -s -X PATCH http://127.0.0.1:8000/api/v1/urls/not-a-uuid \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"is_active": false}'
-
-kill $SERVER_PID

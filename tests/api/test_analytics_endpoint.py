@@ -9,9 +9,7 @@ from app.models.click import Click
 from app.database.config import settings
 
 # Setup test client
-client = TestClient(app)
-
-def test_analytics_flow():
+def test_analytics_flow(client):
     # 1. Register User 1
     client.post("/api/v1/auth/register", json={"username": "user1", "email": "user1@test.com", "password": "password123"})
     login_res1 = client.post("/api/v1/auth/login", json={"email": "user1@test.com", "password": "password123"})

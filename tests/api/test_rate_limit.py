@@ -4,9 +4,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.database.config import settings
 
-client = TestClient(app)
-
-def test_rate_limit():
+def test_rate_limit(client):
+    from app.middleware.rate_limit import limiter
+    limiter.enabled = True
+    # Reset storage for this test to ensure it starts fresh
+    limiter._storage.reset()
     # 1. Register User
     client.post("/api/v1/auth/register", json={"username": "rl_user", "email": "rl_user@test.com", "password": "password123"})
     login_res = client.post("/api/v1/auth/login", json={"email": "rl_user@test.com", "password": "password123"})

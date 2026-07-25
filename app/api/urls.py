@@ -51,6 +51,8 @@ def update_url(url_id: uuid.UUID, payload: UrlUpdateRequest, current_user: User 
         raise HTTPException(status_code=403, detail="You do not own this URL")
         
     for field, value in payload.model_dump(exclude_unset=True).items():
+        if field == "original_url" and value is not None:
+            value = str(value)
         setattr(url_row, field, value)
         
     db.commit()

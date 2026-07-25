@@ -5,29 +5,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
-class GenerateRequest(BaseModel):
-    url: Annotated[HttpUrl, Field(max_length=2048)]
-
-
-class GenerateResponse(BaseModel):
-    id: uuid.UUID
-    original_url: str
-    short_code: str
-    short_url: str
-
-
-class ResolveResponse(BaseModel):
-    id: uuid.UUID
-    original_url: str
-    short_code: str
-
-
-class ShortUrlLookupResponse(BaseModel):
-    short_code: str
-    original_url: str
-    short_url: str
-
-
 class UrlCreateRequest(BaseModel):
     original_url: HttpUrl
     custom_alias: str | None = None
