@@ -2,7 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import urls, redirect, auth
+from app.api import urls, redirect, auth, analytics
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from app.middleware.rate_limit import limiter
 from app.database.bootstrap import initialize_database
 from app.middleware.error_handlers import register_exception_handlers
 
@@ -23,7 +26,11 @@ def create_app() -> FastAPI:
     app.include_router(urls.router)
     app.include_router(redirect.router)
     app.include_router(auth.router)
+    app.include_router(analytics.router)
     register_exception_handlers(app)
+
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     return app
 

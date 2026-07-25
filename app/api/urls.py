@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy import select, or_, asc, desc
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -9,6 +9,8 @@ from app.database.config import settings
 from app.models.user import User
 from app.models.url import Url
 from app.auth.dependencies import get_current_user
+from app.cache.redis_client import redis_client
+from app.middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/urls", tags=["urls"])
 
@@ -25,7 +27,8 @@ def to_response(url_row) -> UrlResponse:
     )
 
 @router.post("", response_model=UrlResponse, status_code=status.HTTP_201_CREATED)
-def create_url(payload: UrlCreateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def create_url(request: Request, response: Response, payload: UrlCreateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         url_row = create_short_url(
             db,
@@ -52,6 +55,7 @@ def update_url(url_id: uuid.UUID, payload: UrlUpdateRequest, current_user: User 
         
     db.commit()
     db.refresh(url_row)
+    redis_client.delete(f"url:{url_row.short_code}")
     return to_response(url_row)
 
 @router.delete("/{url_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -63,8 +67,10 @@ def delete_url(url_id: uuid.UUID, current_user: User = Depends(get_current_user)
     if str(url_row.user_id) != str(current_user.id):
         raise HTTPException(status_code=403, detail="You do not own this URL")
         
+    short_code = url_row.short_code
     db.delete(url_row)
     db.commit()
+    redis_client.delete(f"url:{short_code}")
     return None
 
 ALLOWED_SORT_FIELDS = {"created_at", "click_count", "short_code"}

@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://abhishek:user1234@127.0.0.1:5432/link_forge"
+    redis_url: str = "redis://localhost:6379/0"
+    rate_limit_per_minute: int = 60
     base_url: str = "http://localhost:8000"
     jwt_secret_key: str = "supersecretkey_please_change_in_production"
     jwt_algorithm: str = "HS256"
