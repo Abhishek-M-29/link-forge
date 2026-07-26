@@ -43,6 +43,7 @@ ENV/
 Dockerfile
 docker-compose.yml
 .dockerignore
+prometheus.yml
 
 # Database
 *.sqlite3

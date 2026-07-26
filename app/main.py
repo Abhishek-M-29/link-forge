@@ -1,15 +1,21 @@
 from contextlib import asynccontextmanager
+import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api import urls, redirect, auth, analytics
+from app.api import urls, redirect, auth, analytics, health
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from app.middleware.rate_limit import limiter
 from app.database.bootstrap import initialize_database
 from app.middleware.error_handlers import register_exception_handlers
+from app.utils.logging import configure_logging
 
+configure_logging()
+logger = logging.getLogger("linkforge")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -19,11 +25,9 @@ async def lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Link Forge", version="0.1.0", lifespan=lifespan)
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
-    @app.get("/health")
-    def health_check():
-        return {"status": "ok"}
-
+    app.include_router(health.router)
     app.include_router(urls.router)
     app.include_router(redirect.router)
     app.include_router(auth.router)
@@ -40,3 +44,10 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again."},
+    )
