@@ -102,3 +102,10 @@ Once the application is running, you can access the interactive API documentatio
 - `POST /api/v1/urls` - Create a new shortened URL (Requires Auth)
 - `GET /{short_code}` - Redirect to the original URL
 - `GET /api/v1/analytics/{url_id}` - View URL statistics (Requires Auth)
+
+### Monitoring & Operations:
+- `GET /health` - Liveness probe
+- `GET /ready` - Readiness probe (Database & Redis connection check)
+- `GET /metrics` - Prometheus metrics (Request rates, latencies, Cache hit ratio)
+
+Once running via Docker Compose, you can also view metrics in **Grafana** at `http://localhost:3001` (login: admin/admin). Add the Prometheus data source at `http://prometheus:9090` to create your own dashboards!

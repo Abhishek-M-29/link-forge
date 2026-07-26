@@ -8,6 +8,7 @@ from app.database.session import get_db
 from app.models.url import Url
 from app.analytics.service import record_click
 from app.cache.redis_client import redis_client
+from app.cache.metrics import cache_hits, cache_misses
 
 CACHE_TTL_SECONDS = 300
 router = APIRouter(tags=["redirect"])
@@ -18,6 +19,7 @@ def redirect_to_original(short_code: str, request: Request, db: Session = Depend
     cached = redis_client.get(cache_key)
     
     if cached:
+        cache_hits.inc()
         data = json.loads(cached)
         if data["is_active"] is False:
             raise HTTPException(status_code=410, detail="This link has been deactivated")
@@ -28,6 +30,7 @@ def redirect_to_original(short_code: str, request: Request, db: Session = Depend
         db.commit()
         return RedirectResponse(url=data["original_url"], status_code=302)
         
+    cache_misses.inc()
     url_row = db.scalar(select(Url).where(Url.short_code == short_code))
     if url_row is None:
         raise HTTPException(status_code=404, detail="Short URL not found")
